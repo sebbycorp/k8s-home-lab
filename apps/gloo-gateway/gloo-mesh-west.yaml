@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gloo-mesh-west
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://storage.googleapis.com/gloo-platform/helm-charts
+    chart: gloo-platform
+    targetRevision: 2.7.0
+    helm:
+      releaseName: gloo-platform
+      values: |
+        # DATA PLANE - West Cluster
+        # Gloo Agent (data plane - connects to mgmt cluster)
+        glooAgent:
+          enabled: true
+        
+        # Gloo Gateway (data plane gateway)
+        glooGateway:
+          enabled: true
+        
+        # CONTROL PLANE - Disabled in data plane clusters
+        # Gloo Management Server (control plane - only in mgmt cluster)
+        glooMgmtServer:
+          enabled: false
+        
+        # Gloo Mesh UI (control plane only)
+        glooMeshUI:
+          enabled: false
+        
+        # Gloo Insights Engine (control plane only)
+        glooInsightsEngine:
+          enabled: false
+        
+        # Gloo Analyzer (control plane only)
+        glooAnalyzer:
+          enabled: false
+        
+        # Enable Istio control plane for service mesh (required for cross-cluster communication)
+        istioInstallations:
+          - name: istio-west
+            namespace: istio-system
+            controlPlane:
+              enabled: true
+              # Use Ambient Mesh (Waypoint proxies) instead of sidecars
+              # Set to false if you prefer traditional sidecar-based Istio
+              ambient:
+                enabled: true
+              # Istio revision (for multi-version support)
+              revision: default
+  destination:
+    name: maniak-west
+    namespace: gloo-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
