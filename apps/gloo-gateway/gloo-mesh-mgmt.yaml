@@ -1,0 +1,61 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gloo-mesh-mgmt
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://storage.googleapis.com/gloo-platform/helm-charts
+    chart: gloo-platform
+    targetRevision: 2.7.0
+    helm:
+      releaseName: gloo-platform
+      values: |
+        # Gloo Mesh Enterprise License
+        # Using secret-based licensing (recommended for production)
+        licensing:
+          licenseSecretName: license-keys
+        
+        # CONTROL PLANE - Management Cluster Only
+        # Gloo Management Server (control plane - only in mgmt cluster)
+        glooMgmtServer:
+          enabled: true
+        
+        # Gloo Mesh UI (Enterprise feature - control plane)
+        glooMeshUI:
+          enabled: true
+        
+        # Gloo Insights Engine (Enterprise analytics - control plane)
+        glooInsightsEngine:
+          enabled: true
+        
+        # Gloo Analyzer (Enterprise feature - control plane)
+        glooAnalyzer:
+          enabled: true
+        
+        # DATA PLANE - Disabled in management cluster
+        # Gloo Gateway (data plane - not needed in mgmt cluster)
+        glooGateway:
+          enabled: false
+        
+        # Gloo Agent (data plane - not needed in mgmt cluster)
+        glooAgent:
+          enabled: false
+        
+        # Disable Istio control plane if not using Istio
+        istioInstallations:
+          controlPlane:
+            enabled: false
+  destination:
+    name: maniak-talos-mgmt
+    namespace: gloo-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
